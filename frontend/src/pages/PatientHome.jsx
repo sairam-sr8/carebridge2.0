@@ -1,19 +1,22 @@
 import { useState, useEffect, useRef } from 'react'
-import { Send, Heart, MessageCircle, Calendar, TrendingUp, LogOut } from 'lucide-react'
+import { Send, Heart, MessageCircle, Calendar, TrendingUp, LogOut, Shield, AlertTriangle } from 'lucide-react'
 import { useAuth } from '../services/AuthContext'
-import { patientsAPI } from '../services/api'
+import { API_CONFIG } from '../config/api'
 
 function PatientHome() {
   const [messages, setMessages] = useState([])
   const [inputMessage, setInputMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [summary, setSummary] = useState(null)
+  const [safetyStatus, setSafetyStatus] = useState(null)
+  const [showSafetyAlert, setShowSafetyAlert] = useState(false)
   const messagesEndRef = useRef(null)
   const { logout } = useAuth()
 
   useEffect(() => {
     fetchSummary()
-    fetchHistory()
+    fetchChatHistory()
+    fetchSafetyStatus()
   }, [])
 
   const scrollToBottom = () => {
@@ -26,19 +29,57 @@ function PatientHome() {
 
   const fetchSummary = async () => {
     try {
-      const response = await patientsAPI.getSummary()
-      setSummary(response.data)
+      // Mock summary for now - will be replaced with actual API
+      setSummary({
+        average_mood: 0.7,
+        mood_trend: 'positive',
+        total_entries: 15,
+        summary: 'You\'ve been making great progress! Keep up the positive momentum.'
+      })
     } catch (error) {
       console.error('Error fetching summary:', error)
     }
   }
 
-  const fetchHistory = async () => {
+  const fetchChatHistory = async () => {
     try {
-      const response = await patientsAPI.getHistory()
-      setMessages(response.data)
+      const token = localStorage.getItem('access_token')
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/patient/safety/chat/history`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch chat history')
+      }
+
+      const data = await response.json()
+      setMessages(data.chat_history || [])
     } catch (error) {
-      console.error('Error fetching history:', error)
+      console.error('Error fetching chat history:', error)
+    }
+  }
+
+  const fetchSafetyStatus = async () => {
+    try {
+      const token = localStorage.getItem('access_token')
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/patient/safety/safety-status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch safety status')
+      }
+
+      const data = await response.json()
+      setSafetyStatus(data)
+    } catch (error) {
+      console.error('Error fetching safety status:', error)
     }
   }
 
@@ -48,7 +89,7 @@ function PatientHome() {
 
     const userMessage = {
       id: Date.now(),
-      type: 'user',
+      speaker: 'patient',
       content: inputMessage,
       timestamp: new Date().toISOString()
     }
@@ -58,22 +99,45 @@ function PatientHome() {
     setSending(true)
 
     try {
-      const response = await patientsAPI.sendChat(inputMessage)
+      const token = localStorage.getItem('access_token')
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/v1/patient/safety/chat/send`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: inputMessage
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to send message')
+      }
+
+      const data = await response.json()
       
       const aiMessage = {
         id: Date.now() + 1,
-        type: 'ai',
-        content: response.data.response,
+        speaker: 'ai',
+        content: data.ai_response,
         timestamp: new Date().toISOString(),
-        red_flags: response.data.red_flags || []
+        flagged: data.flagged,
+        severity: data.severity
       }
 
       setMessages(prev => [...prev, aiMessage])
       
-      // Show red flag alert if detected
-      if (response.data.red_flags && response.data.red_flags.length > 0) {
-        alert(`⚠️ We've detected some concerning patterns in your message. Please consider reaching out to your doctor or a crisis helpline if you need immediate support.`)
+      // Show safety alert if flagged
+      if (data.flagged) {
+        setShowSafetyAlert(true)
+        // Auto-hide after 10 seconds
+        setTimeout(() => setShowSafetyAlert(false), 10000)
       }
+      
+      // Refresh safety status
+      await fetchSafetyStatus()
+      
     } catch (error) {
       console.error('Error sending message:', error)
       alert('Failed to send message. Please try again.')
@@ -111,16 +175,53 @@ function PatientHome() {
                 <p className="text-gray-600">Your AI Mental Health Companion</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm text-gray-600">Welcome back</p>
-                <p className="font-medium text-gray-800">How are you feeling today?</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              {safetyStatus && (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  backgroundColor: safetyStatus.safety_status === 'monitored' ? '#fef3c7' : '#d1fae5',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: `1px solid ${safetyStatus.safety_status === 'monitored' ? '#f59e0b' : '#10b981'}`
+                }}>
+                  <Shield style={{ 
+                    width: '16px', 
+                    height: '16px', 
+                    marginRight: '6px',
+                    color: safetyStatus.safety_status === 'monitored' ? '#f59e0b' : '#10b981'
+                  }} />
+                  <span style={{ 
+                    fontSize: '12px', 
+                    fontWeight: '500',
+                    color: safetyStatus.safety_status === 'monitored' ? '#92400e' : '#065f46'
+                  }}>
+                    {safetyStatus.safety_status === 'monitored' ? 'MONITORED' : 'NORMAL'}
+                  </span>
+                </div>
+              )}
+              <div style={{ textAlign: 'right' }}>
+                <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>Welcome back</p>
+                <p style={{ fontWeight: '500', color: '#1f2937', margin: 0 }}>How are you feeling today?</p>
               </div>
               <button
                 onClick={logout}
-                className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '8px 16px',
+                  backgroundColor: '#dc2626',
+                  color: 'white',
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#b91c1c'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#dc2626'}
               >
-                <LogOut className="h-4 w-4 mr-2" />
+                <LogOut style={{ width: '16px', height: '16px', marginRight: '8px' }} />
                 Logout
               </button>
             </div>
@@ -129,6 +230,59 @@ function PatientHome() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-6">
+        {/* Safety Alert Banner */}
+        {showSafetyAlert && (
+          <div style={{
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '8px',
+            padding: '16px',
+            marginBottom: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            animation: 'slideDown 0.3s ease-out'
+          }}>
+            <AlertTriangle style={{ 
+              width: '20px', 
+              height: '20px', 
+              color: '#dc2626',
+              marginRight: '12px',
+              flexShrink: 0
+            }} />
+            <div>
+              <h3 style={{ 
+                fontSize: '16px', 
+                fontWeight: '600', 
+                color: '#dc2626',
+                margin: '0 0 4px 0'
+              }}>
+                Safety Alert
+              </h3>
+              <p style={{ 
+                fontSize: '14px', 
+                color: '#991b1b',
+                margin: 0
+              }}>
+                Your message has been reviewed by our safety system. A mental health professional has been notified and may reach out to you. If you're in immediate danger, please call your local emergency number.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowSafetyAlert(false)}
+              style={{
+                marginLeft: 'auto',
+                background: 'none',
+                border: 'none',
+                color: '#dc2626',
+                cursor: 'pointer',
+                fontSize: '18px',
+                fontWeight: 'bold'
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )}
+
         {/* Summary Card */}
         {summary && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -179,29 +333,68 @@ function PatientHome() {
               messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                  style={{ 
+                    display: 'flex', 
+                    justifyContent: message.speaker === 'patient' ? 'flex-end' : 'flex-start',
+                    marginBottom: '16px'
+                  }}
                 >
                   <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                      message.type === 'user'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}
+                    style={{
+                      maxWidth: '70%',
+                      padding: '12px 16px',
+                      borderRadius: '12px',
+                      backgroundColor: message.speaker === 'patient' ? '#3b82f6' : '#f3f4f6',
+                      color: message.speaker === 'patient' ? 'white' : '#374151',
+                      position: 'relative'
+                    }}
                   >
-                    <p className="text-sm">{message.content}</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs opacity-70">
+                    <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.4' }}>
+                      {message.content}
+                    </p>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between', 
+                      marginTop: '8px',
+                      fontSize: '12px',
+                      opacity: 0.7
+                    }}>
+                      <span>
                         {new Date(message.timestamp).toLocaleTimeString()}
                       </span>
-                      {message.sentiment_score && (
-                        <span className="text-xs opacity-70">
-                          {getMoodEmoji(message.sentiment_score)}
+                      {message.flagged && (
+                        <span style={{ 
+                          display: 'flex', 
+                          alignItems: 'center',
+                          backgroundColor: '#fef2f2',
+                          color: '#dc2626',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          fontSize: '10px'
+                        }}>
+                          <Shield style={{ width: '12px', height: '12px', marginRight: '2px' }} />
+                          SAFETY REVIEWED
                         </span>
                       )}
                     </div>
-                    {message.red_flags && message.red_flags.length > 0 && (
-                      <div className="mt-2 p-2 bg-red-100 border border-red-200 rounded text-xs text-red-700">
-                        ⚠️ We've detected some concerning patterns. Please consider reaching out for support.
+                    {message.flagged && (
+                      <div style={{
+                        marginTop: '8px',
+                        padding: '8px',
+                        backgroundColor: '#fef2f2',
+                        border: '1px solid #fecaca',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        color: '#dc2626'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+                          <AlertTriangle style={{ width: '14px', height: '14px', marginRight: '4px' }} />
+                          <strong>Safety Alert</strong>
+                        </div>
+                        <p style={{ margin: 0 }}>
+                          Your message has been reviewed by our safety system. A mental health professional has been notified and may reach out to you.
+                        </p>
                       </div>
                     )}
                   </div>

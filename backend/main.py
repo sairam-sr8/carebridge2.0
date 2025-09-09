@@ -47,11 +47,15 @@ async def health_check():
     return {"status": "ok"}
 
 # Include routers
-from routers import doctors, patients, admin, auth
+from routers import doctors, patients, admin, auth, safety, patient_safety, websocket, compliance
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
 app.include_router(doctors.router, prefix="/api/v1/doctor", tags=["doctor"])
 app.include_router(patients.router, prefix="/api/v1/patient", tags=["patient"])
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
+app.include_router(safety.router, tags=["safety"])
+app.include_router(patient_safety.router, tags=["patient-safety"])
+app.include_router(websocket.router, tags=["websocket"])
+app.include_router(compliance.router, tags=["compliance"])
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

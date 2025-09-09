@@ -131,7 +131,7 @@ function AdminDashboard() {
             }}>
               CareBridge Admin
             </h1>
-          </div>
+            </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <span style={{ color: '#1e293b', fontWeight: '500' }}>
                       Welcome, {user.user_name || user.name || 'Admin'}!
@@ -200,7 +200,7 @@ function AdminDashboard() {
             <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#059669' }}>👨‍⚕️</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1e293b' }}>0</div>
             <div style={{ color: '#64748b' }}>Doctors</div>
-          </div>
+            </div>
           <div style={{
             background: 'white',
             borderRadius: '8px',
@@ -211,7 +211,7 @@ function AdminDashboard() {
             <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#dc2626' }}>🏥</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1e293b' }}>0</div>
             <div style={{ color: '#64748b' }}>Patients</div>
-          </div>
+            </div>
           <div style={{
             background: 'white',
             borderRadius: '8px',
@@ -315,7 +315,7 @@ function AdminDashboard() {
                 {loading ? 'Creating...' : 'Create Admin'}
               </button>
             </form>
-          </div>
+            </div>
 
           {/* Create Doctor Form */}
           <div style={{
@@ -424,7 +424,7 @@ function AdminDashboard() {
                 {loading ? 'Creating...' : 'Create Doctor'}
               </button>
             </form>
-          </div>
+            </div>
 
           {/* Create Patient Form */}
           <div style={{

@@ -5,6 +5,7 @@ import SimpleHomePage from './pages/SimpleHomePage'
 import LoginPage from './pages/LoginPage'
 import AdminPage from './pages/AdminPage'
 import DoctorDashboard from './pages/DoctorDashboard'
+import DoctorTriageDashboard from './pages/DoctorTriageDashboard'
 import PatientsList from './pages/PatientsList'
 import PatientDetail from './pages/PatientDetail'
 import AlertsPage from './pages/AlertsPage'
@@ -37,6 +38,17 @@ function App() {
                   <DoctorSidebar />
                   <div style={{ flex: 1, overflow: 'auto' }}>
                     <DoctorDashboard />
+                  </div>
+                </div>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/doctor/triage" element={
+              <ProtectedRoute requiredRole="doctor">
+                <div style={{ display: 'flex', minHeight: '100vh' }}>
+                  <DoctorSidebar />
+                  <div style={{ flex: 1, overflow: 'auto' }}>
+                    <DoctorTriageDashboard />
                   </div>
                 </div>
               </ProtectedRoute>

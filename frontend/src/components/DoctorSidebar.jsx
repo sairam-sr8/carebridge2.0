@@ -7,7 +7,8 @@ import {
   BarChart3, 
   Settings,
   Heart,
-  LogOut
+  LogOut,
+  Shield
 } from 'lucide-react'
 
 function DoctorSidebar() {
@@ -16,6 +17,7 @@ function DoctorSidebar() {
   
   const menuItems = [
     { path: '/doctor/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/doctor/triage', label: '🚨 Triage', icon: Shield },
     { path: '/doctor/patients', label: 'Patients', icon: Users },
     { path: '/doctor/alerts', label: 'Alerts', icon: AlertTriangle },
     { path: '/doctor/reports', label: 'Reports', icon: BarChart3 },
