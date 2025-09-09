@@ -1,7 +1,7 @@
 // API Configuration
 const isDevelopment = import.meta.env.MODE === 'development'
 const API_BASE_URL = import.meta.env.VITE_API_URL || 
-  (isDevelopment ? 'http://localhost:8000' : 'https://your-backend.railway.app')
+  (isDevelopment ? 'http://localhost:8000' : 'https://carebridge-production-3c20.up.railway.app')
 
 export const API_CONFIG = {
   BASE_URL: API_BASE_URL,
