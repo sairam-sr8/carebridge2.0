@@ -93,7 +93,7 @@ class Interaction(Base):
     
     # Relationships
     patient = relationship("Patient", back_populates="interactions")
-    safety_flag = relationship("SafetyFlag", back_populates="interaction")
+    safety_flag = relationship("SafetyFlag", back_populates="interaction", foreign_keys=[safety_flag_id])
 
 class Note(Base):
     __tablename__ = "notes"
@@ -168,7 +168,7 @@ class SafetyFlag(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
-    interaction = relationship("Interaction", back_populates="safety_flag")
+    interaction = relationship("Interaction", back_populates="safety_flag", foreign_keys=[interaction_id])
     triage_items = relationship("TriageItem", back_populates="safety_flag")
 
 class TriageItem(Base):
