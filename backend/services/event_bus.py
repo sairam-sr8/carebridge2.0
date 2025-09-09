@@ -37,7 +37,16 @@ class EventBus:
     
     def __init__(self):
         self.redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
-        self.redis_client = redis.from_url(self.redis_url, decode_responses=True)
+        try:
+            self.redis_client = redis.from_url(self.redis_url, decode_responses=True)
+            # Test connection
+            self.redis_client.ping()
+            self.redis_available = True
+            print("Redis connection established successfully")
+        except Exception as e:
+            print(f"Warning: Redis connection failed: {e}. Event bus will use in-memory fallback.")
+            self.redis_client = None
+            self.redis_available = False
         self.subscribers = {}
         
     def publish_event(self, event_type: EventType, data: Dict[str, Any], metadata: Dict[str, Any] = None):
@@ -52,12 +61,16 @@ class EventBus:
                 "retry_count": 0
             }
             
-            # Publish to Redis stream
-            self.redis_client.xadd(
-                "events",
-                event,
-                maxlen=10000  # Keep last 10k events
-            )
+            if self.redis_available and self.redis_client:
+                # Publish to Redis stream
+                self.redis_client.xadd(
+                    "events",
+                    event,
+                    maxlen=10000  # Keep last 10k events
+                )
+            else:
+                # Fallback: just log the event
+                print(f"📡 Event logged (Redis unavailable): {event_type.value}")
             
             print(f"📡 Event published: {event_type.value}")
             return event["id"]

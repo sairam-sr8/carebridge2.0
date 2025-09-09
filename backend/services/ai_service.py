@@ -28,9 +28,10 @@ class AIService:
     def __init__(self):
         self.api_key = os.getenv("OPENAI_API_KEY")
         if not self.api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is required")
-        
-        openai.api_key = self.api_key
+            print("Warning: OPENAI_API_KEY not found. AI service will use fallback responses.")
+            self.api_key = None
+        else:
+            openai.api_key = self.api_key
         self.model = AIModel.GPT_3_5_TURBO.value  # Default model
         self.max_tokens = 500
         self.temperature = 0.7
@@ -152,6 +153,14 @@ Your role:
     
     async def _call_openai_api(self, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
         """Call OpenAI API with retry logic"""
+        
+        if not self.api_key:
+            # Return fallback response when API key is not available
+            return {
+                "content": "Thank you for sharing that with me. I'm here to listen and help. How are you feeling today?",
+                "usage": {"total_tokens": 0},
+                "model": "fallback"
+            }
         
         try:
             response = await openai.ChatCompletion.acreate(

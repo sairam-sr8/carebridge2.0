@@ -13,13 +13,25 @@ import asyncio
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./carebridge.db")
 
-# Create Celery app
-celery_app = Celery(
-    "carebridge_workers",
-    broker=REDIS_URL,
-    backend=REDIS_URL,
-    include=["workers.tasks"]
-)
+# Create Celery app with fallback
+try:
+    celery_app = Celery(
+        "carebridge_workers",
+        broker=REDIS_URL,
+        backend=REDIS_URL,
+        include=["workers.tasks"]
+    )
+    # Test Redis connection
+    celery_app.control.inspect().stats()
+    print("Celery Redis connection established successfully")
+except Exception as e:
+    print(f"Warning: Celery Redis connection failed: {e}. Using in-memory broker.")
+    celery_app = Celery(
+        "carebridge_workers",
+        broker="memory://",
+        backend="memory://",
+        include=["workers.tasks"]
+    )
 
 # Celery configuration
 celery_app.conf.update(

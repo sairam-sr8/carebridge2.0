@@ -45,6 +45,14 @@ class NotificationService:
             "doctor": os.getenv("DOCTOR_WEBHOOK_URL"),
             "patient": os.getenv("PATIENT_WEBHOOK_URL")
         }
+        
+        # Log configuration status
+        if not self.sendgrid_api_key:
+            print("Warning: SENDGRID_API_KEY not found. Email notifications will be disabled.")
+        if not self.twilio_account_sid:
+            print("Warning: TWILIO_ACCOUNT_SID not found. SMS notifications will be disabled.")
+        if not self.firebase_server_key:
+            print("Warning: FIREBASE_SERVER_KEY not found. Push notifications will be disabled.")
     
     async def send_notification(
         self,
