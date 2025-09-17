@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+// Force redeployment to pick up environment variables
 import { AuthProvider } from './services/AuthContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import WorldClassHomePage from './pages/WorldClassHomePage'
